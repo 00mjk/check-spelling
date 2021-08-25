@@ -1048,6 +1048,13 @@ remove_items() {
   fi
 }
 
+get_action_log() {
+  if [ -z "$action_log" ]; then
+    action_log="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+  fi
+  echo "$action_log"
+}
+
 spelling_warning() {
   OUTPUT="### :red_circle: $1
 "
@@ -1074,6 +1081,15 @@ $OUTPUT"
 }
 spelling_body() {
   err="$2"
+  case "$GITHUB_EVENT_NAME" in
+    pull_request|pull_request_target)
+      details_note="See the [files]($(jq -r .pull_request.number "$GITHUB_EVENT_PATH")/files/) view or the [action log]($(get_action_log)) for details.";;
+    push)
+      details_note="See the [action log]($(get_action_log)) for details.";;
+    *)
+      details_note=$(echo '<!-- If you can see this, please [file a bug](https://github.com/check-spelling/check-spelling/issues/new)
+        referencing this comment url, as the code does not expect this to happen. -->' | strip_lead);;
+  esac
   if [ -z "$err" ] && [ -e "$fewer_misspellings_canary" ]; then
     output_remove_items="$N$N$(remove_items)"
   fi
@@ -1187,7 +1203,7 @@ spelling_body() {
         output_advice="$N$N"`cat "$advice_path"`"$N"
       fi
     fi
-    OUTPUT=$(echo "$N$report_header$N$OUTPUT$1$output_dictionaries$output_remove_items$output_excludes$output_excludes_large$output_excludes_suffix$output_warnings$output_accept_script$output_advice
+    OUTPUT=$(echo "$N$report_header$N$OUTPUT$details_note$N$N$1$output_dictionaries$output_remove_items$output_excludes$output_excludes_large$output_excludes_suffix$output_warnings$output_accept_script$output_advice
       " | perl -pne 's/^\s+$/\n/;'| uniq)
 }
 
