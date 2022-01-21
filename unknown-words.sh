@@ -130,6 +130,19 @@ load_env() {
   . "$input_variables"
 }
 
+collapse_previous_comments() {
+  if [ -n "$INPUT_COMMENT_REF" ]; then
+    if [ -e $INPUT_COMMENT_REF ]; then
+      if [ -s $INPUT_COMMENT_REF ]; then
+        for previous_comment_node_id in $(cat $INPUT_COMMENT_REF); do
+          collapse_comment "$previous_comment_node_id" > /dev/null
+        done
+      fi
+      rm $INPUT_COMMENT_REF
+    fi
+  fi
+}
+
 comment_task() {
   set_up_files
 
@@ -170,6 +183,7 @@ comment_task() {
     cat "$SUGGESTED_DICTIONARIES" > $extra_dictionaries_json
   fi
   fewer_misspellings_canary=$(mktemp)
+  collapse_previous_comments
   quit_without_error=1
   if [ -z "$patch_add" ]; then
     quit
@@ -383,13 +397,7 @@ show_github_actions_push_disclaimer() {
   response=$(mktemp)
   comment "$COMMENTS_URL" "$PAYLOAD" > $response || res=$?
   if [ $res -eq 0 ]; then
-    echo "Comment posted to $(jq -r '.html_url // empty' $response)"
-    if [ -n "$INPUT_NEW_COMMENT_REF" ]; then
-      posted_comment_node_id="$(jq -r '.node_id // empty' "$response")"
-      if [ -n "$posted_comment_node_id" ]; then
-        echo "$posted_comment_node_id" > $INPUT_NEW_COMMENT_REF
-      fi
-    fi
+    track_comment "$response"
   fi
 }
 
@@ -1516,6 +1524,17 @@ comment() {
     "$comments_url"
 }
 
+track_comment() {
+  HTML_COMMENT_URL=$(jq -r '.html_url // empty' $response)
+  echo "Comment posted to ${HTML_COMMENT_URL:-$COMMENT_URL}"
+  if [ -n "$INPUT_COMMENT_REF" ]; then
+    posted_comment_node_id="$(jq -r '.node_id // empty' "$response")"
+    if [ -n "$posted_comment_node_id" ]; then
+      echo "$posted_comment_node_id" >> $INPUT_COMMENT_REF
+    fi
+  fi
+}
+
 comment_url_to_html_url() {
   comment "$1" | jq -r ".html_url // $Q$1$Q"
 }
@@ -1629,6 +1648,12 @@ post_commit_comment() {
           rm "$BODY.orig"
         fi
         if [ -n "$COMMENT_URL" ]; then
+          if [ -n "$INPUT_COMMENT_REF" ]; then
+            posted_comment_node_id="$(jq -r '.node_id // empty' "$response")"
+            if [ -n "$posted_comment_node_id" ]; then
+              echo "$posted_comment_node_id" > $INPUT_COMMENT_REF
+            fi
+          fi
           if offer_quote_reply; then
             quote_reply_insertion=$(mktemp)
             (
@@ -1655,8 +1680,7 @@ post_commit_comment() {
             fi
           fi
           rm -f $BODY 2>/dev/null
-          HTML_COMMENT_URL=$(jq -r '.html_url // empty' $response)
-          echo "Comment posted to ${HTML_COMMENT_URL:-$COMMENT_URL}"
+          track_comment "$response"
         else
           cat "$BODY"
         fi
@@ -1902,6 +1926,7 @@ exit_if_no_unknown_words
 compare_new_output
 fewer_misspellings_canary=$(mktemp)
 set_patch_remove_add
+collapse_previous_comments
 if [ -z "$patch_add" ]; then
   fewer_misspellings
 fi
