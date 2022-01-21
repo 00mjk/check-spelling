@@ -167,6 +167,10 @@ inputs:
     description: 'Suppress failure code exit code -- it will be available via outputs.result_code'
     required: false
     default: ''
+  comment_ref:
+    description: 'Path to file containing comments to automatically hide'
+    required: false
+    default: ''
 
 outputs:
   unknown_words:
