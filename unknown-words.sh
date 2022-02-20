@@ -1155,7 +1155,8 @@ spelling_body() {
         run the following commands</summary>
 
         ... in a clone of the [$remote_url_ssh]($remote_url_https) repository
-        on the $b$remote_ref$b branch:
+        on the $b$remote_ref$b branch ([:information_source: how do I use this?](
+        https://github.com/check-spelling/check-spelling/wiki/Accepting-Suggestions)):
         "$(relative_note)"
 
         $B
