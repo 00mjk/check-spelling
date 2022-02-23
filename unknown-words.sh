@@ -1330,7 +1330,7 @@ spelling_body() {
         output_advice="$N$N"`cat "$advice_path"`"$N"
       fi
     fi
-    OUTPUT=$(echo "$N$report_header$N$OUTPUT$details_note$N$N$1$output_dictionaries$output_remove_items$output_excludes$output_excludes_large$output_excludes_suffix$output_warnings$output_accept_script$output_advice
+    OUTPUT=$(echo "$N$report_header$N$OUTPUT$details_note$N$N$1$output_remove_items$output_excludes$output_excludes_large$output_excludes_suffix$output_accept_script$output_dictionaries$output_warnings$output_advice
       " | perl -pne 's/^\s+$/\n/;'| uniq)
 }
 
